@@ -95,9 +95,9 @@ export default function Home() {
           <Summary data={summary} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column - Form */}
-          <div className="lg:col-span-1">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
+          {/* Left column - Add New Transaction */}
+          <div className="lg:col-span-4">
             <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 h-full">
               <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-100">
                 Add New Transaction
@@ -106,35 +106,32 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Middle column - Chart */}
-          <div className="lg:col-span-2">
+          {/* Right column - Recent Transactions */}
+          <div className="lg:col-span-8">
             <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 h-full">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-100">
-                Expense Breakdown
-              </h2>
-              <div className="h-80">
-                <CategoryChart data={categoryData} />
-              </div>
-            </div>
-          </div>
-
-          {/* Right column - Transactions */}
-          <div className="lg:col-span-1 space-y-8">
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
               <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
                 <h2 className="text-xl font-semibold text-gray-800">Recent Transactions</h2>
                 <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                   {transactions.length} total
                 </span>
               </div>
-              <div className="overflow-hidden">
+              <div className="overflow-x-auto">
                 <TransactionList 
                   transactions={transactions} 
                   onTransactionDeleted={handleTransactionDeleted} 
                 />
               </div>
             </div>
-         
+          </div>
+        </div>
+
+        {/* Expense Breakdown - Full width */}
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-8 w-full">
+          <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-100">
+            Expense Breakdown
+          </h2>
+          <div className="h-96">
+            <CategoryChart data={categoryData} />
           </div>
         </div>
 
