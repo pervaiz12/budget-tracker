@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Transaction, TransactionType } from '../types';
-import axios from 'axios';
+import { addTransaction } from '../lib/api';
 
 const categories = [
   'Food', 'Transportation', 'Housing', 'Entertainment', 'Shopping', 'Salary', 'Freelance', 'Other'
@@ -28,7 +28,12 @@ export default function TransactionForm({ onTransactionAdded }: TransactionFormP
     try {
       setIsSubmitting(true);
       setError('');
-      await axios.post('/api/transactions', data);
+      await addTransaction({
+        description: data.title,
+        amount: data.amount * (data.type === 'expense' ? -1 : 1),
+        category: data.category,
+        type: data.type
+      });
       reset();
       onTransactionAdded();
     } catch (err) {

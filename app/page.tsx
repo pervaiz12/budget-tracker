@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Transaction, SummaryData, CategoryData } from './types';
+import { useState, useEffect, useMemo } from 'react';
+import { Transaction, SummaryData, CategoryData, BackendTransaction } from './types';
+import { getTransactions, deleteTransaction } from './lib/api';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import Summary from './components/Summary';
@@ -23,20 +23,33 @@ export default function Home() {
     try {
       setIsLoading(true);
       setError('');
-      const [transactionsRes, summaryRes, categoriesRes] = await Promise.all([
-        axios.get<Transaction[]>('/api/transactions'),
-        axios.get<SummaryData>('/api/transactions/summary'),
-        axios.get<CategoryData[]>('/api/transactions/categories'),
-      ]);
-
-      setTransactions(transactionsRes.data);
-      setSummary(summaryRes.data);
-      setCategoryData(categoriesRes.data);
+      const transactionsData = await getTransactions();
+      
+      // Transform the data to match the frontend's expected format
+      const formattedTransactions = (transactionsData as BackendTransaction[]).map((tx: BackendTransaction) => ({
+        id: tx._id,
+        title: tx.description,
+        amount: Math.abs(tx.amount),
+        type: tx.type,
+        category: tx.category,
+        date: new Date(tx.date)
+      }));
+      
+      setTransactions(formattedTransactions);
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to load data. Please try again later.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      await deleteTransaction(id);
+      fetchTransactions();
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
     }
   };
 
@@ -51,6 +64,37 @@ export default function Home() {
   const handleTransactionDeleted = () => {
     fetchTransactions();
   };
+
+  const { summaryState, categoryDataState } = useMemo(() => {
+    // Calculate summary and category data when transactions change
+    const summaryState: SummaryData = {
+      totalIncome: transactions.reduce((acc, tx) => acc + (tx.type === 'income' ? tx.amount : 0), 0),
+      totalExpenses: transactions.reduce((acc, tx) => acc + (tx.type === 'expense' ? tx.amount : 0), 0),
+      balance: transactions.reduce((acc, tx) => acc + (tx.type === 'income' ? tx.amount : -tx.amount), 0),
+    };
+
+    // Calculate category data with proper typing
+    const categoryMap = transactions
+      .filter(tx => tx.type === 'expense')
+      .reduce((acc, tx) => {
+        acc[tx.category] = (acc[tx.category] || 0) + tx.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
+    const categoryDataState = Object.entries(categoryMap).map(([name, amount]) => ({
+      name,
+      amount,
+      value: Math.abs(amount) // For backward compatibility with charts
+    }));
+
+    return { summaryState, categoryDataState };
+  }, [transactions]);
+
+  // Update state when calculated values change
+  useEffect(() => {
+    setSummary(summaryState);
+    setCategoryData(categoryDataState);
+  }, [summaryState, categoryDataState]);
 
   if (isLoading) {
     return (
@@ -92,7 +136,7 @@ export default function Home() {
           <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-100">
             Financial Summary
           </h2>
-          <Summary data={summary} />
+          <Summary data={summaryState} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
@@ -131,7 +175,7 @@ export default function Home() {
             Expense Breakdown
           </h2>
           <div className="h-96">
-            <CategoryChart data={categoryData} />
+            <CategoryChart data={categoryDataState} />
           </div>
         </div>
 
