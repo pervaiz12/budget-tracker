@@ -18,7 +18,7 @@ export default function TransactionList({ transactions, onTransactionDeleted }: 
     try {
       setDeletingId(id);
       setError('');
-      await axios.delete(`/api/transactions/${id}`);
+      await axios.delete(`http://localhost:5001/api/transactions/${id}`);
       onTransactionDeleted();
     } catch (err) {
       setError('Failed to delete transaction. Please try again.');
