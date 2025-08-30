@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 // Create axios instance
 const api = axios.create({
@@ -41,6 +41,24 @@ export const deleteTransaction = async (id: string) => {
     await api.delete(`/transactions/${id}`);
   } catch (error) {
     console.error('Error deleting transaction:', error);
+    throw error;
+  }
+};
+
+export const updateTransaction = async (
+  id: string,
+  transactionData: {
+    description?: string;
+    amount?: number;
+    category?: string;
+    type?: 'income' | 'expense';
+  }
+) => {
+  try {
+    const response = await api.put(`/transactions/${id}`, transactionData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating transaction:', error);
     throw error;
   }
 };

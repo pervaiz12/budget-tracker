@@ -7,6 +7,7 @@ import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import Summary from './components/Summary';
 import CategoryChart from './components/CategoryChart';
+import Image from 'next/image';
 
 export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -65,6 +66,10 @@ export default function Home() {
     fetchTransactions();
   };
 
+  const handleTransactionUpdated = () => {
+    fetchTransactions();
+  };
+
   const { summaryState, categoryDataState } = useMemo(() => {
     // Calculate summary and category data when transactions change
     const summaryState: SummaryData = {
@@ -113,9 +118,12 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <header className="mb-12 text-center">
-          <h1 className="text-4xl font-bold text-gray-800 mb-3 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-            Budget Tracker
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <Image src="/logo.png" alt="Budget Tracker" width={48} height={48} />
+            <h1 className="text-4xl font-bold text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+              Budget Tracker
+            </h1>
+          </div>
           <p className="text-gray-600 text-lg">Manage your finances with ease</p>
           <div className="mt-2 h-1 w-20 bg-gradient-to-r from-blue-400 to-indigo-500 mx-auto rounded-full"></div>
         </header>
@@ -162,7 +170,8 @@ export default function Home() {
               <div className="overflow-x-auto">
                 <TransactionList 
                   transactions={transactions} 
-                  onTransactionDeleted={handleTransactionDeleted} 
+                  onTransactionDeleted={handleTransactionDeleted}
+                  onTransactionUpdated={handleTransactionUpdated}
                 />
               </div>
             </div>
