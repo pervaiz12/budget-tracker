@@ -2,18 +2,40 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
-// Create axios instance
+// Create axios instance with credentials so httpOnly cookies are sent
 const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
+// Optional: basic interceptor to surface 401s
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error?.response?.status === 401) {
+      // Let caller handle redirect to /login
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Transactions API
-export const getTransactions = async () => {
+export type TxFilters = {
+  category?: string;
+  type?: 'income' | 'expense';
+  startDate?: string; // ISO
+  endDate?: string;   // ISO
+  minAmount?: number;
+  maxAmount?: number;
+  q?: string;
+};
+
+export const getTransactions = async (filters?: TxFilters) => {
   try {
-    const response = await api.get('/transactions');
+    const response = await api.get('/transactions', { params: filters });
     return response.data;
   } catch (error) {
     console.error('Error fetching transactions:', error);
@@ -62,3 +84,26 @@ export const updateTransaction = async (
     throw error;
   }
 };
+
+// Auth API helpers
+export const requestOtp = async (email: string) => {
+  const res = await api.post('/auth/request-otp', { email });
+  return res.data;
+};
+
+export const verifyOtp = async (email: string, code: string, name?: string) => {
+  const res = await api.post('/auth/verify-otp', { email, code, name });
+  return res.data;
+};
+
+export const getMe = async () => {
+  const res = await api.get('/auth/me');
+  return res.data.user as { id: string; email: string; name?: string } | null;
+};
+
+export const logout = async () => {
+  const res = await api.post('/auth/logout');
+  return res.data;
+};
+
+export { api };

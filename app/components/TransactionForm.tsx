@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Transaction, TransactionType } from '../types';
 import { addTransaction } from '../lib/api';
+import { toast } from '../lib/toast';
 
 const categories = [
   'Food', 'Transportation', 'Housing', 'Entertainment', 'Shopping', 'Salary', 'Freelance', 'Other'
@@ -36,8 +37,10 @@ export default function TransactionForm({ onTransactionAdded }: TransactionFormP
       });
       reset();
       onTransactionAdded();
+      toast.success('Transaction added');
     } catch (err) {
       setError('Failed to add transaction. Please try again.');
+      toast.error('Failed to add transaction');
       console.error('Error adding transaction:', err);
     } finally {
       setIsSubmitting(false);

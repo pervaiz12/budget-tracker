@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Transaction, SummaryData, CategoryData, BackendTransaction } from './types';
-import { getTransactions, deleteTransaction } from './lib/api';
+import { getTransactions, deleteTransaction, getMe } from './lib/api';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import Summary from './components/Summary';
 import CategoryChart from './components/CategoryChart';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { getSocket } from './lib/socket';
+import TopBar from './components/TopBar';
+import FiltersBar, { Filters } from './components/FiltersBar';
 
 export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -19,12 +23,26 @@ export default function Home() {
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const router = useRouter();
+  const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
+  const [filters, setFilters] = useState<Filters>({});
+  const [appliedFilters, setAppliedFilters] = useState<Filters>({});
 
   const fetchTransactions = async () => {
     try {
       setIsLoading(true);
       setError('');
-      const transactionsData = await getTransactions();
+      // Map UI filters to API filters
+      const params: any = {};
+      if (appliedFilters.category) params.category = appliedFilters.category;
+      if (appliedFilters.type) params.type = appliedFilters.type;
+      if (appliedFilters.startDate) params.startDate = appliedFilters.startDate;
+      if (appliedFilters.endDate) params.endDate = appliedFilters.endDate;
+      if (appliedFilters.minAmount) params.minAmount = Number(appliedFilters.minAmount);
+      if (appliedFilters.maxAmount) params.maxAmount = Number(appliedFilters.maxAmount);
+      if (appliedFilters.q) params.q = appliedFilters.q;
+
+      const transactionsData = await getTransactions(params);
       
       // Transform the data to match the frontend's expected format
       const formattedTransactions = (transactionsData as BackendTransaction[]).map((tx: BackendTransaction) => ({
@@ -55,8 +73,47 @@ export default function Home() {
   };
 
   useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const me = await getMe();
+        if (!me) {
+          router.replace('/login');
+          return;
+        }
+        if (!mounted) return;
+        setUserEmail(me.email);
+        await fetchTransactions();
+        // Setup sockets for live updates
+        const socket = getSocket();
+        socket.on('transaction:created', fetchTransactions);
+        socket.on('transaction:updated', fetchTransactions);
+        socket.on('transaction:deleted', fetchTransactions);
+      } catch (e) {
+        router.replace('/login');
+      }
+    })();
+    return () => {
+      mounted = false;
+      try {
+        const socket = getSocket();
+        socket.off('transaction:created', fetchTransactions);
+        socket.off('transaction:updated', fetchTransactions);
+        socket.off('transaction:deleted', fetchTransactions);
+      } catch {}
+    };
+  }, [router]);
+
+  const applyFilters = () => {
+    setAppliedFilters(filters);
     fetchTransactions();
-  }, []);
+  };
+
+  const clearFilters = () => {
+    setFilters({});
+    setAppliedFilters({});
+    fetchTransactions();
+  };
 
   const handleTransactionAdded = () => {
     fetchTransactions();
@@ -117,6 +174,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
+        <TopBar userEmail={userEmail} />
         <header className="mb-12 text-center">
           <div className="flex items-center justify-center gap-3 mb-3">
             <Image src="/logo.png" alt="Budget Tracker" width={48} height={48} />
@@ -127,6 +185,13 @@ export default function Home() {
           <p className="text-gray-600 text-lg">Manage your finances with ease</p>
           <div className="mt-2 h-1 w-20 bg-gradient-to-r from-blue-400 to-indigo-500 mx-auto rounded-full"></div>
         </header>
+
+        <FiltersBar
+          value={filters}
+          onChange={setFilters}
+          onApply={applyFilters}
+          onClear={clearFilters}
+        />
 
         {error && (
           <div className="mb-8 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-md shadow-sm">

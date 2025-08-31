@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Transaction, TransactionType } from '../types';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { deleteTransaction, updateTransaction } from '../lib/api';
+import { toast } from '../lib/toast';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -32,8 +33,10 @@ export default function TransactionList({ transactions, onTransactionDeleted, on
       setError('');
       await deleteTransaction(id);
       onTransactionDeleted();
+      toast.success('Transaction deleted');
     } catch (err) {
       setError('Failed to delete transaction. Please try again.');
+      toast.error('Failed to delete transaction');
       console.error('Error deleting transaction:', err);
     } finally {
       setDeletingId(null);
@@ -66,8 +69,10 @@ export default function TransactionList({ transactions, onTransactionDeleted, on
       });
       setEditingId(null);
       onTransactionUpdated?.();
+      toast.success('Transaction updated');
     } catch (err) {
       setError('Failed to update transaction. Please try again.');
+      toast.error('Failed to update transaction');
       console.error('Error updating transaction:', err);
     }
   };
